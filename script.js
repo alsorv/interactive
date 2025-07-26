@@ -3,9 +3,11 @@ function calculateMortgage() {
     const amortizationPeriodYears = parseFloat(document.getElementById('amortizationPeriod').value);
     const annualInterestRate = parseFloat(document.getElementById('interestRate').value);
     const paymentFrequency = document.getElementById('paymentFrequency').value;
+    const estimatedPaymentDisplay = document.getElementById('estimatedPaymentDisplay');
 
     if (isNaN(loanAmount) || isNaN(amortizationPeriodYears) || isNaN(annualInterestRate) || loanAmount <= 0 || amortizationPeriodYears <= 0 || annualInterestRate < 0) {
-        document.getElementById('results').innerHTML = '<p style="color: red;">Please enter valid numeric values for all fields.</p>';
+        estimatedPaymentDisplay.textContent = 'Please enter valid numbers.';
+        estimatedPaymentDisplay.style.color = 'red';
         return;
     }
 
@@ -13,7 +15,7 @@ function calculateMortgage() {
     const nominalAnnualRate = annualInterestRate / 100;
 
     // --- Step 1: Calculate the Effective Annual Rate (EAR) for semi-annual compounding ---
-    // Canadian mortgages compound semi-annually, not in advance.
+    // Canadian mortgages compound semi-annually.
     const semiAnnualRate = nominalAnnualRate / 2;
     const effectiveAnnualRate = Math.pow((1 + semiAnnualRate), 2) - 1;
 
@@ -21,8 +23,6 @@ function calculateMortgage() {
     let totalPayments;
     let periodicRate;
     let calculatedPayment;
-    let totalInterestPaid;
-    let totalCostOfMortgage;
 
     // --- Step 2: Determine periodic rate and total payments based on frequency ---
     // For accelerated payments, we first calculate the monthly payment and then derive.
@@ -35,7 +35,7 @@ function calculateMortgage() {
         const totalMonthlyPayments = amortizationPeriodYears * monthlyPaymentsPerYear;
         const periodicRateMonthly = Math.pow((1 + effectiveAnnualRate), (1 / monthlyPaymentsPerYear)) - 1;
 
-        if (periodicRateMonthly === 0) { // Handle 0 interest rate case
+        if (periodicRateMonthly === 0) { // Handle 0 interest rate case for monthly calc
             monthlyPaymentForAccelerated = loanAmount / totalMonthlyPayments;
         } else {
             monthlyPaymentForAccelerated = (loanAmount * periodicRateMonthly) / (1 - Math.pow(1 + periodicRateMonthly, -totalMonthlyPayments));
@@ -58,39 +58,22 @@ function calculateMortgage() {
             totalPayments = amortizationPeriodYears * paymentsPerYear;
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
-        case 'accelerated-bi-weekly':
-            // Calculated based on monthly payment, then divided by 2
-            paymentsPerYear = 26; // Still 26 payments made per year
-            calculatedPayment = monthlyPaymentForAccelerated / 2;
-            // For total calculations, we need to know the true amortization period for this payment amount.
-            // This requires re-calculating N based on P, not the original amortizationYears.
-            // This is complex for a simple calculator; usually, accelerated payments reduce the term.
-            // For simplicity and common understanding, we'll calculate total cost based on the *original* amortization period
-            // and the accelerated payment amount, which means it will actually pay off *faster*.
-            // To properly show the reduced amortization, a different calculation is needed (solving for N).
-            // For now, we'll show the payment, and total cost assuming the "accelerated" payment is made for the original term,
-            // implicitly recognizing it will pay off faster.
-            // A more accurate "accelerated" calculation would solve for the new, shorter amortization period.
-            // For a journalist, showing the payment and highlighting "pays off faster" might be sufficient.
-            // Let's make an assumption: the user wants the payment for the *stated* amortization period,
-            // and the accelerated nature implies it will actually finish sooner.
-            // For calculation of total interest/cost, we will assume it *does* pay for the full period for consistency,
-            // but add a note about faster payoff.
-            // If the journalist needs the *exact* reduced amortization, it's a more involved iterative calculation.
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still need this for total calculations if not solving for new N
-            break;
         case 'weekly':
             paymentsPerYear = 52;
             totalPayments = amortizationPeriodYears * paymentsPerYear;
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
+        case 'accelerated-bi-weekly':
+            paymentsPerYear = 26; // Number of payments per year for calculation of total payments/cost (if needed)
+            calculatedPayment = monthlyPaymentForAccelerated / 2; // This is the actual payment amount
+            totalPayments = amortizationPeriodYears * paymentsPerYear; // For consistency, though actual term is shorter
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
+            break;
         case 'accelerated-weekly':
-            // Calculated based on monthly payment, then divided by 4
-            paymentsPerYear = 52; // Still 52 payments made per year
-            calculatedPayment = monthlyPaymentForAccelerated / 4;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Need this for totals
+            paymentsPerYear = 52; // Number of payments per year
+            calculatedPayment = monthlyPaymentForAccelerated / 4; // This is the actual payment amount
+            totalPayments = amortizationPeriodYears * paymentsPerYear; // For consistency, though actual term is shorter
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
             break;
     }
 
@@ -103,39 +86,9 @@ function calculateMortgage() {
         }
     }
 
-    // --- Step 4: Calculate total interest and total cost ---
-    // For accelerated, totalPayments needs to be re-evaluated if we want the true payoff time.
-    // For simplicity for the journalist, if they pay `calculatedPayment` for `amortizationPeriodYears * paymentsPerYear`,
-    // the total cost is `calculatedPayment * totalPayments`.
-    // The *actual* amortization will be shorter, and thus total interest less, for accelerated options.
-    // Let's calculate the total cost based on the *calculated payment amount* over the *original amortization* (for display consistency).
-    // And add a note about accelerated payments reducing actual payoff time.
-
-    totalCostOfMortgage = calculatedPayment * totalPayments;
-    totalInterestPaid = totalCostOfMortgage - loanAmount;
-
-    // --- Display Results ---
-    const resultsDiv = document.getElementById('results');
-    let acceleratedNote = '';
-    if (paymentFrequency === 'accelerated-bi-weekly') {
-        acceleratedNote = '<p style="font-size: 0.9em; color: #666; margin-top: 10px;"><em>Note: Accelerated bi-weekly payments will pay off your mortgage faster than a standard bi-weekly schedule and save you interest over the long run, typically equivalent to one extra monthly payment per year.</em></p>';
-    } else if (paymentFrequency === 'accelerated-weekly') {
-        acceleratedNote = '<p style="font-size: 0.9em; color: #666; margin-top: 10px;"><em>Note: Accelerated weekly payments will pay off your mortgage faster than a standard weekly schedule and save you interest over the long run, typically equivalent to one extra monthly payment per year.</em></p>';
-    }
-
-    resultsDiv.innerHTML = `
-        <h2>Mortgage Summary</h2>
-        <p><strong>Principal Borrowed:</strong> $${loanAmount.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        <p><strong>Selected Amortization:</strong> ${amortizationPeriodYears} Years</p>
-        <p><strong>Interest Rate:</strong> ${annualInterestRate.toFixed(2)}% (Semi-Annual Compounding)</p>
-        <p><strong>Payment Frequency:</strong> ${formatPaymentFrequency(paymentFrequency)}</p>
-        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-        <p><strong>Estimated ${formatPaymentFrequency(paymentFrequency)} Payment:</strong> <strong>$${calculatedPayment.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
-        <p><strong>Total Number of Payments (over stated amortization):</strong> ${totalPayments}</p>
-        <p><strong>Total Interest Paid (over stated amortization):</strong> $${totalInterestPaid.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        <p><strong>Total Cost of Mortgage (Principal + Interest):</strong> $${totalCostOfMortgage.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
-        ${acceleratedNote}
-    `;
+    // --- Display Simple Result ---
+    estimatedPaymentDisplay.textContent = `Estimated ${formatPaymentFrequency(paymentFrequency)} Payment: $${calculatedPayment.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    estimatedPaymentDisplay.style.color = '#28a745'; // Reset color if it was red from an error
 }
 
 function formatPaymentFrequency(key) {
@@ -143,18 +96,23 @@ function formatPaymentFrequency(key) {
         'monthly': 'Monthly',
         'semi-monthly': 'Semi-Monthly',
         'bi-weekly': 'Bi-Weekly',
-        'accelerated-bi-weekly': 'Accelerated Bi-Weekly',
         'weekly': 'Weekly',
+        'accelerated-bi-weekly': 'Accelerated Bi-Weekly',
         'accelerated-weekly': 'Accelerated Weekly'
     };
     return frequencies[key] || key;
 }
 
-// Calculate on load with default values
+// Initial calculation when the page loads
 document.addEventListener('DOMContentLoaded', calculateMortgage);
 
-// Also calculate when inputs change for a more interactive experience
+// Recalculate whenever an input field changes for a dynamic experience
 document.getElementById('loanAmount').addEventListener('input', calculateMortgage);
 document.getElementById('amortizationPeriod').addEventListener('change', calculateMortgage);
 document.getElementById('interestRate').addEventListener('input', calculateMortgage);
 document.getElementById('paymentFrequency').addEventListener('change', calculateMortgage);
+
+// Explicitly call calculateMortgage when the button is clicked
+// (The input/change listeners already handle most updates, but this ensures a recalculation
+// if the user clicks the button without changing anything, which is expected behavior).
+document.querySelector('button').addEventListener('click', calculateMortgage);
