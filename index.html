@@ -3,46 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ontario House Hunt Mortgage Calculator</title>
+    <title>House Hunt mortgage calculator</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="calculator-container">
-        <h1>Ontario House Hunt Mortgage Calculator</h1>
+        <h1>House Hunt mortgage calculator</h1>
         <div class="input-group">
-            <label for="loanAmount">Amount to Borrow ($):</label>
+            <label for="loanAmount">Amount to borrow ($):</label>
             <input type="number" id="loanAmount" value="300000" min="10000" step="1000" required>
         </div>
         <div class="input-group">
-            <label for="amortizationPeriod">Amortization Period (Years):</label>
+            <label for="amortizationPeriod">Amortization period (years):</label>
             <select id="amortizationPeriod">
-                <option value="5">5 Years</option>
-                <option value="10">10 Years</option>
-                <option value="15">15 Years</option>
-                <option value="20">20 Years</option>
-                <option value="25" selected>25 Years</option>
-                <option value="30">30 Years</option>
+                <option value="5">5 years</option>
+                <option value="10">10 years</option>
+                <option value="15">15 years</option>
+                <option value="20">20 years</option>
+                <option value="25" selected>25 years</option>
+                <option value="30">30 years</option>
             </select>
         </div>
         <div class="input-group">
-            <label for="interestRate">Annual Interest Rate (%):</label>
+            <label for="interestRate">Annual interest rate (%):</label>
             <input type="number" id="interestRate" value="5.00" min="0.1" max="20" step="0.01" required>
         </div>
         <div class="input-group">
-            <label for="paymentFrequency">Payment Frequency:</label>
+            <label for="paymentFrequency">Payment frequency:</label>
             <select id="paymentFrequency">
                 <option value="monthly" selected>Monthly</option>
-                <option value="semi-monthly">Semi-Monthly</option>
-                <option value="bi-weekly">Bi-Weekly</option>
-                <option value="accelerated-bi-weekly">Accelerated Bi-Weekly</option>
+                <option value="semi-monthly">Semi-monthly</option>
+                <option value="bi-weekly">Bi-weekly</option>
                 <option value="weekly">Weekly</option>
-                <option value="accelerated-weekly">Accelerated Weekly</option>
+                <option value="accelerated-bi-weekly">Accelerated bi-weekly</option>
+                <option value="accelerated-weekly">Accelerated weekly</option>
             </select>
         </div>
-        <button onclick="calculateMortgage()">Calculate Mortgage</button>
+        <button onclick="calculateMortgage()">Calculate mortgage</button>
 
-        <div id="results" class="results-container">
-            </div>
+        <div id="results" class="results-container simple-display">
+            <p id="estimatedPaymentDisplay"></p>
+        </div>
     </div>
 
     <script src="script.js"></script>
