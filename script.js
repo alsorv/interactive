@@ -1,16 +1,41 @@
 function calculateMortgage() {
     const loanAmount = parseFloat(document.getElementById('loanAmount').value);
-    const amortizationPeriodYears = parseFloat(document.getElementById('amortizationPeriod').value);
+    const amortizationYears = parseInt(document.getElementById('amortizationYears').value);
+    const amortizationMonths = parseInt(document.getElementById('amortizationMonths').value);
     const annualInterestRate = parseFloat(document.getElementById('interestRate').value);
     const paymentFrequency = document.getElementById('paymentFrequency').value;
     const estimatedPaymentDisplay = document.getElementById('estimatedPaymentDisplay');
 
-    // Clear any previous error messages or results when a new calculation starts
+    // Clear previous results/errors
     estimatedPaymentDisplay.textContent = '';
-    estimatedPaymentDisplay.style.color = ''; // Reset color
+    estimatedPaymentDisplay.style.color = '';
 
-    if (isNaN(loanAmount) || isNaN(amortizationPeriodYears) || isNaN(annualInterestRate) || loanAmount <= 0 || amortizationPeriodYears <= 0 || annualInterestRate < 0) {
-        estimatedPaymentDisplay.textContent = 'Please enter valid numbers.';
+    // Validate inputs
+    if (isNaN(loanAmount) || loanAmount <= 0) {
+        estimatedPaymentDisplay.textContent = 'Please enter a valid amount to borrow.';
+        estimatedPaymentDisplay.style.color = 'red';
+        return;
+    }
+    if (isNaN(amortizationYears) || amortizationYears < 0 || amortizationYears > 30) {
+        estimatedPaymentDisplay.textContent = 'Please enter valid years (0-30) for amortization.';
+        estimatedPaymentDisplay.style.color = 'red';
+        return;
+    }
+    if (isNaN(amortizationMonths) || amortizationMonths < 0 || amortizationMonths > 11) {
+        estimatedPaymentDisplay.textContent = 'Please enter valid months (0-11) for amortization.';
+        estimatedPaymentDisplay.style.color = 'red';
+        return;
+    }
+    if (isNaN(annualInterestRate) || annualInterestRate < 0.1 || annualInterestRate > 20) {
+        estimatedPaymentDisplay.textContent = 'Please enter a valid interest rate (0.1-20%).';
+        estimatedPaymentDisplay.style.color = 'red';
+        return;
+    }
+
+    // Calculate total amortization period in months
+    const totalAmortizationMonths = (amortizationYears * 12) + amortizationMonths;
+    if (totalAmortizationMonths === 0) {
+        estimatedPaymentDisplay.textContent = 'Amortization period cannot be zero.';
         estimatedPaymentDisplay.style.color = 'red';
         return;
     }
@@ -30,13 +55,13 @@ function calculateMortgage() {
 
     // --- Step 2: Determine periodic rate and total payments based on frequency ---
     let monthlyPaymentForAccelerated = 0;
-    if (paymentFrequency === 'accelerated-bi-weekly' || paymentFrequency === 'accelerated-weekly') {
-        // Calculate monthly payment first to derive accelerated payments
+    // Calculate a base monthly payment if accelerated options are chosen
+    if (paymentFrequency.includes('accelerated')) {
         const monthlyPaymentsPerYear = 12;
-        const totalMonthlyPayments = amortizationPeriodYears * monthlyPaymentsPerYear;
         const periodicRateMonthly = Math.pow((1 + effectiveAnnualRate), (1 / monthlyPaymentsPerYear)) - 1;
+        const totalMonthlyPayments = totalAmortizationMonths; // Use total months for monthly calculation base
 
-        if (periodicRateMonthly === 0) { // Handle 0 interest rate case for monthly calc
+        if (periodicRateMonthly === 0) {
             monthlyPaymentForAccelerated = loanAmount / totalMonthlyPayments;
         } else {
             monthlyPaymentForAccelerated = (loanAmount * periodicRateMonthly) / (1 - Math.pow(1 + periodicRateMonthly, -totalMonthlyPayments));
@@ -46,40 +71,43 @@ function calculateMortgage() {
     switch (paymentFrequency) {
         case 'monthly':
             paymentsPerYear = 12;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            totalPayments = totalAmortizationMonths; // Already in months
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'semi-monthly':
             paymentsPerYear = 24;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            // Total payments = total months * 2 (since 2 semi-monthly payments per month)
+            totalPayments = totalAmortizationMonths * 2;
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'bi-weekly':
             paymentsPerYear = 26;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            // Total payments = total months * (26/12)
+            totalPayments = totalAmortizationMonths * (26 / 12);
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'weekly':
             paymentsPerYear = 52;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            // Total payments = total months * (52/12)
+            totalPayments = totalAmortizationMonths * (52 / 12);
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'accelerated-bi-weekly':
             paymentsPerYear = 26;
             calculatedPayment = monthlyPaymentForAccelerated / 2;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
+            totalPayments = totalAmortizationMonths * (26 / 12); // For consistency, though actual term is shorter
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
             break;
         case 'accelerated-weekly':
             paymentsPerYear = 52;
             calculatedPayment = monthlyPaymentForAccelerated / 4;
-            totalPayments = amortizationPeriodYears * paymentsPerYear;
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
+            totalPayments = totalAmortizationMonths * (52 / 12); // For consistency, though actual term is shorter
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
             break;
     }
 
     // --- Step 3: Calculate the payment (if not already done for accelerated) ---
-    if (paymentFrequency !== 'accelerated-bi-weekly' && paymentFrequency !== 'accelerated-weekly') {
+    if (!paymentFrequency.includes('accelerated')) {
         if (periodicRate === 0) { // Handle 0 interest rate case
             calculatedPayment = loanAmount / totalPayments;
         } else {
@@ -104,11 +132,12 @@ function formatPaymentFrequency(key) {
     return frequencies[key] || key;
 }
 
-// ONLY call calculateMortgage when the button is explicitly clicked
-document.querySelector('button').addEventListener('click', calculateMortgage);
+// Initial calculation when the page loads
+document.addEventListener('DOMContentLoaded', calculateMortgage);
 
-// Add a line to ensure the display is empty on load if desired.
-// You could also set <p id="estimatedPaymentDisplay"></p> to be empty in HTML initially.
-document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('estimatedPaymentDisplay').textContent = '';
-});
+// Recalculate whenever an input field changes for a dynamic experience
+document.getElementById('loanAmount').addEventListener('input', calculateMortgage);
+document.getElementById('amortizationYears').addEventListener('input', calculateMortgage);
+document.getElementById('amortizationMonths').addEventListener('input', calculateMortgage);
+document.getElementById('interestRate').addEventListener('input', calculateMortgage);
+document.getElementById('paymentFrequency').addEventListener('change', calculateMortgage);
