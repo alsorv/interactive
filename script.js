@@ -5,6 +5,10 @@ function calculateMortgage() {
     const paymentFrequency = document.getElementById('paymentFrequency').value;
     const estimatedPaymentDisplay = document.getElementById('estimatedPaymentDisplay');
 
+    // Clear any previous error messages or results when a new calculation starts
+    estimatedPaymentDisplay.textContent = '';
+    estimatedPaymentDisplay.style.color = ''; // Reset color
+
     if (isNaN(loanAmount) || isNaN(amortizationPeriodYears) || isNaN(annualInterestRate) || loanAmount <= 0 || amortizationPeriodYears <= 0 || annualInterestRate < 0) {
         estimatedPaymentDisplay.textContent = 'Please enter valid numbers.';
         estimatedPaymentDisplay.style.color = 'red';
@@ -25,9 +29,6 @@ function calculateMortgage() {
     let calculatedPayment;
 
     // --- Step 2: Determine periodic rate and total payments based on frequency ---
-    // For accelerated payments, we first calculate the monthly payment and then derive.
-    // This correctly reflects the Canadian accelerated payment methodology.
-
     let monthlyPaymentForAccelerated = 0;
     if (paymentFrequency === 'accelerated-bi-weekly' || paymentFrequency === 'accelerated-weekly') {
         // Calculate monthly payment first to derive accelerated payments
@@ -64,16 +65,16 @@ function calculateMortgage() {
             periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'accelerated-bi-weekly':
-            paymentsPerYear = 26; // Number of payments per year for calculation of total payments/cost (if needed)
-            calculatedPayment = monthlyPaymentForAccelerated / 2; // This is the actual payment amount
-            totalPayments = amortizationPeriodYears * paymentsPerYear; // For consistency, though actual term is shorter
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
+            paymentsPerYear = 26;
+            calculatedPayment = monthlyPaymentForAccelerated / 2;
+            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
         case 'accelerated-weekly':
-            paymentsPerYear = 52; // Number of payments per year
-            calculatedPayment = monthlyPaymentForAccelerated / 4; // This is the actual payment amount
-            totalPayments = amortizationPeriodYears * paymentsPerYear; // For consistency, though actual term is shorter
-            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1; // Still needed for internal consistency of rate conversion
+            paymentsPerYear = 52;
+            calculatedPayment = monthlyPaymentForAccelerated / 4;
+            totalPayments = amortizationPeriodYears * paymentsPerYear;
+            periodicRate = Math.pow((1 + effectiveAnnualRate), (1 / paymentsPerYear)) - 1;
             break;
     }
 
@@ -88,7 +89,7 @@ function calculateMortgage() {
 
     // --- Display Simple Result ---
     estimatedPaymentDisplay.textContent = `Estimated ${formatPaymentFrequency(paymentFrequency)} Payment: $${calculatedPayment.toLocaleString('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    estimatedPaymentDisplay.style.color = '#28a745'; // Reset color if it was red from an error
+    estimatedPaymentDisplay.style.color = '#28a745';
 }
 
 function formatPaymentFrequency(key) {
@@ -103,16 +104,11 @@ function formatPaymentFrequency(key) {
     return frequencies[key] || key;
 }
 
-// Initial calculation when the page loads
-document.addEventListener('DOMContentLoaded', calculateMortgage);
-
-// Recalculate whenever an input field changes for a dynamic experience
-document.getElementById('loanAmount').addEventListener('input', calculateMortgage);
-document.getElementById('amortizationPeriod').addEventListener('change', calculateMortgage);
-document.getElementById('interestRate').addEventListener('input', calculateMortgage);
-document.getElementById('paymentFrequency').addEventListener('change', calculateMortgage);
-
-// Explicitly call calculateMortgage when the button is clicked
-// (The input/change listeners already handle most updates, but this ensures a recalculation
-// if the user clicks the button without changing anything, which is expected behavior).
+// ONLY call calculateMortgage when the button is explicitly clicked
 document.querySelector('button').addEventListener('click', calculateMortgage);
+
+// Add a line to ensure the display is empty on load if desired.
+// You could also set <p id="estimatedPaymentDisplay"></p> to be empty in HTML initially.
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('estimatedPaymentDisplay').textContent = '';
+});
